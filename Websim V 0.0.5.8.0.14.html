@@ -1,0 +1,733 @@
+<html><head><base href="https://timesheet.websim.io/"><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Timesheet App</title><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script><style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #e6f2ff;
+    }
+    .container {
+        width: 90%;
+        max-width: 1200px;
+        margin: 0 auto;
+        background-color: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .header-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    h1 {
+        color: #003366;
+        text-align: center;
+        flex-grow: 1;
+    }
+    .logo {
+        max-height: 80px;
+        width: auto;
+        margin-left: 20px;
+    }
+    button {
+        background-color: #0066cc;
+        border: none;
+        color: white;
+        padding: 15px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 5px;
+    }
+    input, select {
+        width: 100%;
+        padding: 12px 20px;
+        margin: 8px 0;
+        display: inline-block;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+    }
+    table {
+        border-collapse: collapse;
+        width: 100%;
+    }
+    th, td {
+        text-align: left;
+        padding: 8px;
+        border-bottom: 1px solid #ddd;
+    }
+    th {
+        background-color: #0066cc;
+        color: white;
+    }
+    .required {
+        color: #cc0000;
+        font-size: 0.8em;
+        display: block;
+        margin-bottom: 5px;
+    }
+    .if-any {
+        color: #666666;
+        font-size: 0.8em;
+        display: block;
+        margin-bottom: 5px;
+    }
+    .input-group {
+        margin-bottom: 15px;
+    }
+    .task-form-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding: 20px;
+    }
+    .task-form-grid .input-group {
+        margin-bottom: 0;
+    }
+    .input-error {
+        border: 2px solid #cc0000 !important;
+    }
+    .table-container {
+        width: 100%;
+        overflow-x: auto;
+    }
+    #summaryTable {
+        min-width: 100%;
+        width: max-content;
+    }
+    @media (max-width: 1067px) {
+        .table-container {
+            overflow-x: auto;
+        }
+    }
+    @media (max-width: 600px) {
+        .task-form-grid {
+            grid-template-columns: 1fr;
+            padding: 10px;
+        }
+    }
+    .tooltip-icon {
+        display: inline-block;
+        width: 16px;
+        height: 16px;
+        margin-left: 5px;
+        vertical-align: middle;
+        cursor: help;
+    }
+    .tooltip {
+        position: relative;
+        display: inline-block;
+    }
+    .tooltip .tooltiptext {
+        visibility: hidden;
+        width: 200px;
+        background-color: #555;
+        color: #fff;
+        text-align: center;
+        border-radius: 6px;
+        padding: 5px;
+        position: absolute;
+        z-index: 1;
+        bottom: 125%;
+        left: 50%;
+        margin-left: -100px;
+        opacity: 0;
+        transition: opacity 0.3s;
+    }
+    .tooltip:hover .tooltiptext {
+        visibility: visible;
+        opacity: 1;
+    }
+</style></head><body>
+    <div class="container" id="welcomePage">
+        <div class="header-container">
+            <h1>Timesheet App</h1>
+            <!-- <img src="/a/91021d3d-b1b2-46ba-bcf2-fb6f651d246c" alt="APM logo" class="logo"> -->
+        </div>
+        <p id="dateTime"></p>
+        <p id="greeting"></p>
+        <p>Are you ready to start?</p>
+        <button onclick="startApp()">I'm Ready!</button>
+    </div>
+
+    <div class="container" id="appPage" style="display:none;">
+        <h1>Employee Timesheet</h1>
+        <div id="employeeInfo">
+            <div class="input-group">
+                <label for="employeeName">Employee Name</label>
+                <span class="required">(required)</span>
+                <select id="employeeName" required>
+                    <option value="">Select Employee</option>
+                </select>
+            </div>
+            <div class="input-group">
+                <label for="hourlyRate">Hourly Rate</label>
+                <span class="required">(required)</span>
+                <input type="number" id="hourlyRate" placeholder="$$$" required min="0.01" step="0.01" readonly>
+            </div>
+            <button onclick="startTimesheet()">Start Timesheet</button>
+        </div>
+        <div id="taskForm" style="display:none;">
+            <h2>Task <span id="taskNumber">1</span></h2>
+            <div class="task-form-grid">
+                <div class="input-group">
+                    <label for="taskDate">Date</label>
+                    <span class="required">(required)</span>
+                    <input type="date" id="taskDate" required>
+                </div>
+                <div class="input-group">
+                    <label for="hoursWorked">Worked Hours
+                        <span class="tooltip">
+                            <svg class="tooltip-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12" y2="17"></line>
+                            </svg>
+                            <span class="tooltiptext">15 mins = .25<br>30 mins = .50<br>45 mins = .75</span>
+                        </span>
+                    </label>
+                    <span class="required">(required)</span>
+                    <input type="number" id="hoursWorked" placeholder="Per Task Hours" required min="0.01" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="property">Property</label>
+                    <span class="required">(required)</span>
+                    <select id="property" required>
+                        <option value="">Select Property</option>
+                        <option value="Belton MHP Homes LLC">Belton MHP Homes LLC</option>
+                        <option value="Belton MHP Land LLC">Belton MHP Land LLC</option>
+                        <option value="Canton MHP Homes LLC">Canton MHP Homes LLC</option>
+                        <option value="Canton MHP Land LLC">Canton MHP Land LLC</option>
+                        <option value="Columbia 2 MHP Homes LLC">Columbia 2 MHP Homes LLC</option>
+                        <option value="Columbia 2 MHP Land LLC">Columbia 2 MHP Land LLC</option>
+                        <option value="Columbia MHP Homes LLC">Columbia MHP Homes LLC</option>
+                        <option value="Columbia MHP Land LLC">Columbia MHP Land LLC</option>
+                        <option value="Des Moines MHP Homes LLC">Des Moines MHP Homes LLC</option>
+                        <option value="Des Moines MHP Land LLC">Des Moines MHP Land LLC</option>
+                        <option value="Hamilton MHP Homes LLC">Hamilton MHP Homes LLC</option>
+                        <option value="Hamilton MHP Land LLC">Hamilton MHP Land LLC</option>
+                        <option value="Marshall MHP Homes LLC">Marshall MHP Homes LLC</option>
+                        <option value="Marshall MHP Land LLC">Marshall MHP Land LLC</option>
+                        <option value="Marshalltown MHP Homes LLC">Marshalltown MHP Homes LLC</option>
+                        <option value="Marshalltown MHP Land LLC">Marshalltown MHP Land LLC</option>
+                        <option value="Mediapolis MHP Homes LLC">Mediapolis MHP Homes LLC</option>
+                        <option value="Mediapolis MHP Land LLC">Mediapolis MHP Land LLC</option>
+                        <option value="Paradise Lane MHP & Storage, L.L.C">Paradise Lane MHP & Storage, L.L.C</option>
+                        <option value="Paradise Lane MHP Homes LLC">Paradise Lane MHP Homes LLC</option>
+                        <option value="QV Homes FFL LLC">QV Homes FFL LLC</option>
+                        <option value="QV Land FFL LLC">QV Land FLL LLC</option>
+                        <option value="Rantoul MHP Homes LLC">Rantoul MHP Homes LLC</option>
+                        <option value="Rantoul MHP Land LLC">Rantoul MHP Land LLC</option>
+                        <option value="Taylorville's Fairview MHP Homes LLC">Taylorville's Fairview MHP Homes LLC</option>
+                        <option value="Taylorville's Fairview MHP Land LLC">Taylorville's Fairview MHP Land LLC</option>
+                        <option value="Centralia MHP Land LLC">Centralia MHP Land LLC</option>
+                        <option value="Centralia MHP Homes LLC">Centralia MHP Homes LLC</option>
+                        <option value="Fairfield MHP Land LLC">Fairfield MHP Land LLC</option>
+                        <option value="Fairfield MHP Homes LLC">Fairfield MHP Homes LLC</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="unit">Unit Number
+                        <span class="tooltip">
+                            <svg class="tooltip-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12" y2="17"></line>
+                            </svg>
+                            <span class="tooltiptext">For the Land Entity it is not necessary to select a unit number, only for the Homes Entity</span>
+                        </span>
+                    </label>
+                    <span class="if-any">(If any)</span>
+                    <select id="unit">
+                        <option value="">Select Unit</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="expense">Allocation
+                        <span class="tooltip">
+                            <svg class="tooltip-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                                <line x1="12" y1="17" x2="12" y2="17"></line>
+                            </svg>
+                            <span class="tooltiptext">Choose 1505 if the unit is a: VPO, RTO or POR. For the rest of the expenses select accordingly</span>
+                        </span>
+                    </label>
+                    <span class="required">(required)</span>
+                    <select id="expense" required>
+                        <option value="">Select Expense</option>
+                        <option value="1505 Mobile Homes Owned">1505 Mobile Homes Owned</option>
+                        <option value="5109 Misc Repairs">5109 Misc Repairs</option>
+                        <option value="5033 Mowing">5033 Mowing</option>
+                        <option value="6017 Road Repairs">6017 Road Repairs</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="description">Description</label>
+                    <span class="required">(required)</span>
+                    <input type="text" id="description" placeholder="Install new furnace" required>
+                </div>
+                <div class="input-group">
+                    <label for="perDiem">Per Diem</label>
+                    <input type="number" id="perDiem" placeholder="Optional" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="mileage">Driven Miles</label>
+                    <input type="number" id="mileage" placeholder="Proportional" min="0" step="0.01">
+                </div>
+                <div class="input-group">
+                    <label for="reimbursement">Reimbursement</label>
+                    <input type="number" id="reimbursement" placeholder="If any" min="0" step="0.01">
+                </div>
+            </div>
+            <button onclick="addTask()">Add Task</button>
+            <button onclick="finishTimesheet()">Finish</button>
+        </div>
+        <div id="timesheetSummary" style="display:none;">
+            <h2>Timesheet Summary</h2>
+            <div class="table-container">
+                <table id="summaryTable">
+                    <thead>
+                        <tr>
+                            <th>Task</th>
+                            <th>Employee</th>
+                            <th>Date</th>
+                            <th>Property</th>
+                            <th>Unit</th>
+                            <th>Expense</th>
+                            <th>Description</th>
+                            <th>Hours</th>
+                            <th>Labor</th>
+                            <th>Mileage</th>
+                            <th>Per Diem</th>
+                            <th>Reimb</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="7">Total for <span id="employeeNameTotal"></span></td>
+                            <td id="totalHours"></td>
+                            <td id="totalCost"></td>
+                            <td id="totalMileage"></td>
+                            <td id="totalPerDiem"></td>
+                            <td id="totalReimbursement"></td>
+                            <td id="grandTotal"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <button onclick="downloadExcel()">Download File</button>
+            <button onclick="newEmployee()">New Employee</button>
+            <button onclick="editTask()">Edit Task</button>
+            <button onclick="addNewTask()">Add Task</button>
+        </div>
+    </div>
+
+    <script>
+        const employeeList = [
+            {name: "Amanda Kaunas", rate: 16},
+            {name: "Austin Marsh", rate: 25},
+            {name: "Barb Niemann", rate: 19},
+            {name: "Blake Niemann", rate: 20},
+            {name: "Brett Niemann", rate: 20},
+            {name: "Carlos Arevalo", rate: 15},
+            {name: "Chan Weir", rate: 23},
+            {name: "Chris Edgington", rate: 20},
+            {name: "Claudia Vazquez", rate: 15},
+            {name: "Corinne Dickerman", rate: 16},
+            {name: "Cristobal Daniel Lopes", rate: 15},
+            {name: "Dereck Jermain Ramirez", rate: 15},
+            {name: "Devon Matlick", rate: 16},
+            {name: "Elman Centeno", rate: 18},
+            {name: "Erick Recinos", rate: 15},
+            {name: "Felipe Ramirez", rate: 10},
+            {name: "Frankie Arriola", rate: 15},
+            {name: "Giovanny Arana Lopez", rate: 20},
+            {name: "Hector Gonzales Ramos", rate: 16},
+            {name: "Hector Nieves Rodriguez", rate: 15},
+            {name: "Jacob Williams", rate: 18},
+            {name: "Jaime Alberto Reyes Martinez", rate: 16},
+            {name: "Jaime Reyes", rate: 16},
+            {name: "Joe Hash", rate: 16},
+            {name: "Jose Antonio Sanchez", rate: 20},
+            {name: "Juan Chavarria", rate: 17},
+            {name: "Julio Estrada Ojer", rate: 20},
+            {name: "Julio Rivera", rate: 0},
+            {name: "Kener Reyes", rate: 16},
+            {name: "Larissa VonBurg", rate: 18},
+            {name: "Lela Hooker", rate: 18.5},
+            {name: "Luci Morales", rate: 150},
+            {name: "Martin Miller", rate: 18},
+            {name: "Mary Ovalle", rate: 15},
+            {name: "Nancy Corona Mundo", rate: 150},
+            {name: "Norma Sanchez", rate: 15},
+            {name: "Paulino Mejia", rate: 20},
+            {name: "Pedro Pop Yat", rate: 15},
+            {name: "Raul Cortez", rate: 85},
+            {name: "Reynaldo Chavarria", rate: 16},
+            {name: "Ron Senecaut", rate: 14},
+            {name: "Russell Fisher", rate: 13},
+            {name: "Sandler Arriola", rate: 15},
+            {name: "Scott Jordan", rate: 23},
+            {name: "Vilma Rios", rate: 15}
+        ];
+
+        const propertyUnits = {
+            "Belton MHP Homes LLC": ["95", "96", "97", "98", "99", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", "150", "151", "152", "153", "154", "155", "156", "157", "158", "159", "160", "161", "162", "163", "164", "165", "166", "167", "168", "169", "170", "171", "172", "173", "174", "175", "176", "177", "178", "179", "180", "181", "182", "183", "184", "185", "186", "187", "188", "189", "190", "513", "515", "517", "519", "521", "523"],
+            "Belton MHP Land LLC": [" "],
+            "Canton MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", "130", "131"],
+            "Canton MHP Land LLC": [" "],
+            "Columbia 2 MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "36A", "36B", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "4406"],
+            "Columbia 2 MHP Land LLC": [" "],
+            "Columbia MHP Homes LLC": ["1a", "1b", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "36A", "37", "38", "39", "40", "41", "42", "43", "44", "45", "4916"],
+            "Columbia MHP Land LLC": [" "],
+            "Des Moines MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20"],
+            "Des Moines MHP Land LLC": [" "],
+            "Hamilton MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38"],
+            "Hamilton MHP Land LLC": [" "],
+            "Marshall MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95"],
+            "Marshall MHP Land LLC": [" "],
+            "Marshalltown MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "100", "101", "102", "103", "104", "105", "106", "107", "108", "109", "110", "111", "112", "113", "114", "115", "116", "117", "118", "119", "120", "121", "122", "123", "124", "125", "126", "127", "128", "129", "130", "131", "132", "133", "134", "135", "136", "137", "138", "139", "140", "141", "142", "143", "144", "145", "146", "147", "148", "149", "150", "151", "152", "153", "999"],
+            "Marshalltown MHP Land LLC": [" "],
+            "Mediapolis MHP Homes LLC": ["19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75"],
+            "Mediapolis MHP Land LLC": [" "],
+            "Paradise Lane MHP Homes LLC": ["1500 Dewees", "1500 Zellerman", "1501 Tipton", "1501 Wilkes", "1501 Zellerman", "1502 Gehring", "1502 Tipton", "1506 Dewees", "1506 Zellerman", "1507 Tipton", "1507 Wilkes", "1507 Zellerman", "1512 DeWees", "1512 Gehring", "1512 Tipton", "1512 Wilkes", "1512 Zellerman", "1513 Quick", "1513 Tipton", "1513 Wilkes", "1513 Zellerman", "1514 Quick", "1517 Dewees", "1518 Dewees", "1518 Quick", "1518 Zellerman", "1519 Quick", "1519 Tipton", "1519 Wilkes", "1519 Zellerman", "1520 Wilkes", "1522 Wilkes", "1524 Gehring", "1524 Quick", "1524 Spring Lake Rd", "1524 Zellerman", "1525 Tipton", "1525 Wilkes", "1525 Zellerman", "1530 Dewees", "1530 Quick", "1530 Wilkes", "1530 Zellerman", "1531 Dewees", "1531 Quick", "1531 Tipton", "1531 Wilkes", "1531 Zellerman", "1534 Gehring", "1534 Tipton", "1536 Dewees", "1536 Quick", "1536 Wilkes", "1536 Zellerman", "1537 Quick", "1537 Tipton", "1537 Wilkes", "1537 Zellerman", "2603 Jenny Ln", "4906 E Paradise", "4907 W Paradise", "4909 W Paradise", "4912 E Paradise", "4918 E Paradise", "4919 W Paradise", "4930 E Paradise", "5002 E Paradise", "5002 W Paradise", "5003 W Paradise", "5008 E Paradise", "5009 W Paradise", "5016 E Paradise", "5016 W Paradise", "5017 W Paradise", "5022 E Paradise", "5023 W Paradise", "5028 E Paradise", "5029 W Paradise", "5100 E Paradise", "5101 W Paradise", "5108 E Paradise", "5109 W Paradise", "5114 E Paradise", "5115 W Paradise", "5120 E Paradise", "5122 E Paradise", "5122 W Paradise", "5123 E Paradise", "5128 E Paradise", "5128 W Paradise", "5130 W Paradise", "1524 Tipton", "1524 Spring Lake Rd", "4912 E Paradise", "5010 W Paradise"],
+            "Paradise Lane MHP & Storage, L.L.C": [" "],
+            "QV Homes FFL LLC": ["1106", "1110", "1114", "1116", "1120", "1122", "1124", "1128", "1130", "1132", "1136", "1200", "1202", "1204", "1208", "1210", "1212", "1218"],
+            "QV Land FFL LLC": [" "],
+            "Rantoul MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55"],
+            "Rantoul MHP Land LLC": [" "],
+            "Taylorville's Fairview MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48"],
+            "Taylorville's Fairview MHP Land LLC": [" "],
+            "Centralia MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "100"],
+            "Centralia MHP Land LLC": [" "],
+            "Fairfield MHP Homes LLC": ["1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "32", "33", "34", "35", "36", "37", "38", "39", "40", "41", "42", "43", "44", "45", "46", "47", "48", "49", "50", "51", "52", "53", "54", "55", "56", "57", "58", "59", "60", "61", "62", "63", "64", "65", "66", "67", "68", "69", "70", "71", "72", "73", "74", "75", "76", "77", "78", "79", "80", "81", "82", "83", "84", "85", "86", "87", "88", "89", "90", "91", "92", "93", "94", "95", "96", "97", "98", "99", "100", "101", "115", "116"],
+            "Fairfield MHP Land LLC": [" "]
+        };
+
+        let tasks = [];
+        let currentTask = 1;
+        let hourlyRate = 0;
+        let editingTaskIndex = -1;
+        let isEditing = false;
+
+        function formatDate(dateString) {
+            const [year, month, day] = dateString.split('-');
+            return `${month}/${day}/${year}`;
+        }
+
+        function updateDateTime() {
+            const now = new Date();
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const dateStr = now.toLocaleDateString('en-US', options);
+            const timeStr = now.toLocaleTimeString('en-US');
+            document.getElementById('dateTime').textContent = `Today is ${dateStr} and it's ${timeStr}.`;
+
+            const hour = now.getHours();
+            let greeting = '';
+            if (hour < 12) {
+                greeting = 'Good morning!';
+            } else if (hour < 18) {
+                greeting = 'Good afternoon!';
+            } else {
+                greeting = 'Good evening!';
+            }
+            document.getElementById('greeting').textContent = greeting;
+        }
+
+        function populateEmployeeSelect() {
+            const select = document.getElementById('employeeName');
+            select.innerHTML = '<option value="">Select Employee</option>'; // Clear existing options
+            employeeList.forEach(employee => {
+                const option = document.createElement('option');
+                option.value = employee.name;
+                option.textContent = employee.name;
+                select.appendChild(option);
+            });
+        }
+
+        function updateHourlyRate() {
+            const selectedEmployee = document.getElementById('employeeName').value;
+            const hourlyRateInput = document.getElementById('hourlyRate');
+            const employee = employeeList.find(emp => emp.name === selectedEmployee);
+            if (employee) {
+                hourlyRateInput.value = employee.rate;
+            } else {
+                hourlyRateInput.value = '';
+            }
+        }
+
+        function populateUnitSelect() {
+            const propertySelect = document.getElementById('property');
+            const unitSelect = document.getElementById('unit');
+            const selectedProperty = propertySelect.value;
+            
+            unitSelect.innerHTML = '<option value="">Select Unit</option>';
+            
+            if (selectedProperty.includes('Land')) {
+                return; // Leave the unit select empty for Land properties
+            }
+            
+            if (selectedProperty && propertyUnits[selectedProperty]) {
+                propertyUnits[selectedProperty].forEach(unit => {
+                    const option = document.createElement('option');
+                    option.value = unit;
+                    option.textContent = unit;
+                    unitSelect.appendChild(option);
+                });
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            populateEmployeeSelect();
+            updateDateTime();
+            setInterval(updateDateTime, 1000);
+            document.getElementById('employeeName').addEventListener('change', updateHourlyRate);
+            document.getElementById('property').addEventListener('change', populateUnitSelect);
+        });
+
+        function startApp() {
+            document.getElementById('welcomePage').style.display = 'none';
+            document.getElementById('appPage').style.display = 'block';
+        }
+
+        function startTimesheet() {
+            const name = document.getElementById('employeeName').value;
+            hourlyRate = parseFloat(document.getElementById('hourlyRate').value);
+            if (name && !isNaN(hourlyRate) && hourlyRate > 0) {
+                document.getElementById('employeeInfo').style.display = 'none';
+                document.getElementById('taskForm').style.display = 'block';
+            } else {
+                alert('Please select an employee.');
+            }
+        }
+
+        function addTask() {
+            const employeeName = document.getElementById('employeeName').value;
+            const taskDate = document.getElementById('taskDate').value;
+            const hoursWorked = parseFloat(document.getElementById('hoursWorked').value).toFixed(2);
+            const property = document.getElementById('property').value;
+            const unit = document.getElementById('unit').value;
+            const expense = document.getElementById('expense').value;
+            const description = document.getElementById('description').value;
+            const perDiem = parseFloat(document.getElementById('perDiem').value) || 0;
+            const mileage = parseFloat(document.getElementById('mileage').value) || 0;
+            const reimbursement = parseFloat(document.getElementById('reimbursement').value) || 0;
+
+            const requiredFields = ['taskDate', 'hoursWorked', 'property', 'expense', 'description'];
+            let firstEmptyField = null;
+
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                if (!field.value) {
+                    field.classList.add('input-error');
+                    if (!firstEmptyField) firstEmptyField = field;
+                } else {
+                    field.classList.remove('input-error');
+                }
+            });
+
+            if (firstEmptyField) {
+                firstEmptyField.focus();
+                return;
+            }
+
+            if (taskDate && !isNaN(hoursWorked) && hoursWorked >= 0.01 && property && expense && description && perDiem >= 0 && mileage >= 0 && reimbursement >= 0) {
+                const cost = hoursWorked * hourlyRate;
+                const total = cost + perDiem + mileage * 0.655 + reimbursement;
+                const task = {employeeName, taskDate, property, unit, expense, description, hoursWorked, cost, mileage, perDiem, reimbursement, total};
+                
+                if (isEditing) {
+                    tasks[editingTaskIndex] = task;
+                } else {
+                    tasks.push(task);
+                }
+                
+                resetTaskForm();
+                
+                if (isEditing) {
+                    finishEditing();
+                } else if (document.getElementById('timesheetSummary').style.display === 'block') {
+                    finishTimesheet();
+                } else {
+                    currentTask++;
+                    document.getElementById('taskNumber').textContent = currentTask;
+                }
+            } else {
+                alert('Please fill all required fields. Hours worked must be a number greater than or equal to 0.01. Per diem, mileage, and reimbursement cannot be negative.');
+            }
+        }
+
+        function resetTaskForm() {
+            document.getElementById('taskDate').value = '';
+            document.getElementById('hoursWorked').value = '';
+            document.getElementById('property').value = '';
+            document.getElementById('unit').value = '';
+            document.getElementById('expense').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('perDiem').value = '';
+            document.getElementById('mileage').value = '';
+            document.getElementById('reimbursement').value = '';
+        }
+
+        function finishTimesheet() {
+            if (tasks.length === 0) {
+                alert('Please add at least one task.');
+                return;
+            }
+            document.getElementById('taskForm').style.display = 'none';
+            document.getElementById('timesheetSummary').style.display = 'block';
+            updateSummaryTable();
+            
+            const addTaskButton = document.querySelector('#taskForm button:nth-of-type(1)');
+            addTaskButton.textContent = 'Add Task';
+            addTaskButton.onclick = addTask;
+            
+            document.querySelector('#taskForm button:nth-of-type(2)').style.display = 'inline-block';
+        }
+
+        function updateSummaryTable() {
+            const tableBody = document.querySelector('#summaryTable tbody');
+            tableBody.innerHTML = '';
+            let totalHours = 0, totalCost = 0, totalMileage = 0, totalPerDiem = 0, totalReimbursement = 0, grandTotal = 0;
+            tasks.forEach((task, index) => {
+                const row = tableBody.insertRow();
+                row.innerHTML = `
+                    <td>${index + 1}</td>
+                    <td>${task.employeeName}</td>
+                    <td>${formatDate(task.taskDate)}</td>
+                    <td>${task.property}</td>
+                    <td>${task.unit}</td>
+                    <td>${task.expense}</td>
+                    <td>${task.description}</td>
+                    <td>${parseFloat(task.hoursWorked).toFixed(2)}</td>
+                    <td>$${task.cost.toFixed(2)}</td>
+                    <td>$${(task.mileage * 0.655).toFixed(2)}</td>
+                    <td>$${task.perDiem.toFixed(2)}</td>
+                    <td>$${task.reimbursement.toFixed(2)}</td>
+                    <td>$${task.total.toFixed(2)}</td>
+                `;
+                totalHours += parseFloat(task.hoursWorked);
+                totalCost += task.cost;
+                totalMileage += task.mileage * 0.655;
+                totalPerDiem += task.perDiem;
+                totalReimbursement += task.reimbursement;
+                grandTotal += task.total;
+            });
+            
+            const employeeName = document.getElementById('employeeName').value;
+            document.getElementById('employeeNameTotal').textContent = employeeName;
+
+            document.getElementById('totalHours').textContent = totalHours.toFixed(2);
+            document.getElementById('totalCost').textContent = '$' + totalCost.toFixed(2);
+            document.getElementById('totalMileage').textContent = '$' + totalMileage.toFixed(2);
+            document.getElementById('totalPerDiem').textContent = '$' + totalPerDiem.toFixed(2);
+            document.getElementById('totalReimbursement').textContent = '$' + totalReimbursement.toFixed(2);
+            document.getElementById('grandTotal').textContent = '$' + grandTotal.toFixed(2);
+        }
+
+        function addNewTask() {
+            currentTask = tasks.length + 1;
+            document.getElementById('taskNumber').textContent = currentTask;
+            resetTaskForm();
+            document.getElementById('timesheetSummary').style.display = 'none';
+            document.getElementById('taskForm').style.display = 'block';
+            
+            const addTaskButton = document.querySelector('#taskForm button:nth-of-type(1)');
+            addTaskButton.textContent = 'Add New Task';
+            addTaskButton.onclick = function() {
+                addTask();
+                finishTimesheet();
+            };
+            
+            document.querySelector('#taskForm button:nth-of-type(2)').style.display = 'none';
+        }
+
+        function editTask() {
+            const taskNumber = prompt("Enter the task number you want to edit:");
+            if (taskNumber && !isNaN(taskNumber) && taskNumber > 0 && taskNumber <= tasks.length) {
+                editingTaskIndex = parseInt(taskNumber) - 1;
+                isEditing = true;
+                const task = tasks[editingTaskIndex];
+                
+                document.getElementById('taskNumber').textContent = taskNumber;
+                document.getElementById('taskDate').value = task.taskDate;
+                document.getElementById('hoursWorked').value = task.hoursWorked;
+                document.getElementById('property').value = task.property;
+                populateUnitSelect();
+                document.getElementById('unit').value = task.unit;
+                document.getElementById('expense').value = task.expense;
+                document.getElementById('description').value = task.description;
+                document.getElementById('perDiem').value = task.perDiem;
+                document.getElementById('mileage').value = task.mileage;
+                document.getElementById('reimbursement').value = task.reimbursement;
+                
+                document.getElementById('timesheetSummary').style.display = 'none';
+                document.getElementById('taskForm').style.display = 'block';
+                
+                const addTaskButton = document.querySelector('#taskForm button:nth-of-type(1)');
+                addTaskButton.textContent = 'Update Task';
+                
+                document.querySelector('#taskForm button:nth-of-type(2)').style.display = 'none';
+            } else {
+                alert('Please enter a valid task number.');
+            }
+        }
+
+        function finishEditing() {
+            isEditing = false;
+            editingTaskIndex = -1;
+            document.getElementById('taskForm').style.display = 'none';
+            document.getElementById('timesheetSummary').style.display = 'block';
+            finishTimesheet();
+            
+            const addTaskButton = document.querySelector('#taskForm button:nth-of-type(1)');
+            addTaskButton.textContent = 'Add Task';
+            
+            document.querySelector('#taskForm button:nth-of-type(2)').style.display = 'inline-block';
+        }
+
+        function downloadExcel() {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('summaryTable'));
+            XLSX.utils.book_append_sheet(wb, ws, "Timesheet");
+            
+            const employeeName = document.getElementById('employeeName').value;
+            const currentDate = new Date();
+            const formattedDate = `${(currentDate.getMonth() + 1).toString().padStart(2, '0')}/${currentDate.getDate().toString().padStart(2, '0')}/${currentDate.getFullYear()}`;
+            const filename = `timesheet_${employeeName}_${formattedDate}.xlsx`;
+            XLSX.writeFile(wb, filename);
+        }
+
+        function newEmployee() {
+            tasks = [];
+            currentTask = 1;
+            hourlyRate = 0;
+            document.getElementById('employeeName').value = '';
+            document.getElementById('hourlyRate').value = '';
+            document.getElementById('taskNumber').textContent = '1';
+            resetTaskForm();
+            document.getElementById('timesheetSummary').style.display = 'none';
+            document.getElementById('employeeInfo').style.display = 'block';
+        }
+
+        function resetFieldStyle(event) {
+            event.target.classList.remove('input-error');
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const requiredFields = ['taskDate', 'hoursWorked', 'property', 'expense', 'description'];
+            requiredFields.forEach(fieldId => {
+                const field = document.getElementById(fieldId);
+                field.addEventListener('input', resetFieldStyle);
+            });
+        });
+    </script>
+</body></html>
