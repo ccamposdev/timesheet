@@ -172,7 +172,7 @@
             <div class="input-group">
                 <label for="hourlyRate">Hourly Rate</label>
                 <span class="required">(required)</span>
-                <input type="number" id="hourlyRate" placeholder="$$$" required min="0.01" step="0.01" readonly>
+                <input type="number" id="hourlyRate" placeholder="$$$" required min="0.00" step="0.01" readonly>
             </div>
             <button onclick="startTimesheet()">Start Timesheet</button>
         </div>
@@ -356,7 +356,7 @@
             {name: "Dylan Weinhold", rate: 23},
             {name: "Elman Centeno", rate: 18},
             {name: "Erick Recinos", rate: 15},
-            {name: "Erick Rivera", rate: 1},
+            {name: "Erick Rivera", rate: 0},
             {name: "Felipe Ramirez", rate: 10},
             {name: "Frankie Arriola", rate: 15},
             {name: "Giovanny Arana Lopez", rate: 20},
@@ -509,7 +509,7 @@
         function startTimesheet() {
             const name = document.getElementById('employeeName').value;
             hourlyRate = parseFloat(document.getElementById('hourlyRate').value);
-            if (name && !isNaN(hourlyRate) && hourlyRate > 0) {
+            if (name && !isNaN(hourlyRate) && hourlyRate >= 0) {
                 document.getElementById('employeeInfo').style.display = 'none';
                 document.getElementById('taskForm').style.display = 'block';
             } else {
