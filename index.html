@@ -534,7 +534,7 @@
             const mileage = parseFloat(document.getElementById('mileage').value) || 0;
             const reimbursement = parseFloat(document.getElementById('reimbursement').value) || 0;
 
-            const requiredFields = ['taskDate', 'hoursWorked', 'property', 'expense', 'description'];
+            const requiredFields = ['taskDate', 'hoursWorked', 'property', 'expense', 'description','unit'];
             let firstEmptyField = null;
 
             requiredFields.forEach(fieldId => {
